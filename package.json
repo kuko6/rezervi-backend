@@ -5,7 +5,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "devStart": "nodemon src/server.js"
+    "devStart": "nodemon src/server.js",
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -33,6 +34,7 @@
     "ws": "^8.6.0"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
     "nodemon": "^2.0.15"
   }
 }

@@ -5,13 +5,13 @@ const Room = require('../../models/Rooms');
 const User = require('../../models/Users');
 const mongoose = require('mongoose')
 const { uploadFile } = require('../uploadFile');
-const Joi = require('joi');
+// const Joi = require('joi')
 
 const router = express.Router();
 const upload = multer();
 
 // Owner ID validation method
-const ownerIDValidation = async (id) => {
+const validateOwnerID = async (id) => {
     try {
         const userExists = await User.exists({ _id: id });
         if (!userExists) throw 'Wrong user_id';
@@ -20,6 +20,31 @@ const ownerIDValidation = async (id) => {
         return { field: 'owner_id', message: 'wrong owner_id' };
     }
 };
+
+// Upload thumbnail
+const uploadThumbnail = async (thumbnail, roomID) => {
+    const imagePath = 'rooms/'+roomID+'/'+'thumbnail/'+thumbnail.originalname;
+    const dataURL = await uploadFile(thumbnail, imagePath);
+    if (dataURL == null) {
+        return [{ error: { message: 'Error while saving the thumbnail' } }, null]
+    }
+
+    return [null, dataURL];
+}
+
+// Upload rest of the images
+const uploadImages = async (images, roomID) => {
+    let image_urls = [];
+    for (const i in images) {
+        const imagePath = 'rooms/'+roomID+'/'+'images/'+images[i].originalname;
+        const dataURL = await uploadFile(images[i], imagePath);
+        if (dataURL == null) {
+            return [{ error: { message: 'Error while saving the image' } }, null]
+        }
+        image_urls.push(dataURL);
+    }
+    return [null, image_urls];
+}
 
 // Creates a new room
 router.post('/', verifyJWT, upload.fields([{ name: 'thumbnail', maxCount: 1 }, { name: 'images', maxCount: 6 }]), async (req, res) => {
@@ -77,28 +102,16 @@ router.post('/', verifyJWT, upload.fields([{ name: 'thumbnail', maxCount: 1 }, {
 
     // Upload thumbnail
     if (req.files['thumbnail']) {
-        const thumbnail = req.files['thumbnail'][0];
-        try {
-            const imagePath = 'rooms/'+newRoom._id+'/'+'thumbnail/'+thumbnail.originalname;
-            const dataURL = await uploadFile(thumbnail, imagePath);
-            newRoom.thumbnail_url = dataURL;
-        } catch (err) {
-            console.log(err);
-            return res.status(500).send({ error: { message: 'Something went wrong :(' }});
+        [error, newRoom.thumbnail_url] = uploadThumbnail(req.files['thumbnail'][0]);
+        if (error) {
+            return res.status(500).send(error);
         }
     }
-
+    
     // Upload rest of the images
-    const images = req.files['images'];
-    for (const i in images) {
-        try {
-            const imagePath = 'rooms/'+newRoom._id+'/'+'images/'+images[i].originalname;
-            const dataURL = await uploadFile(images[i], imagePath);
-            newRoom.image_urls.push(dataURL);
-        } catch (err) {
-            console.log(err);
-            return res.status(500).send({ error: { message: 'Something went wrong :(' }});
-        }
+    [error, newRoom.thumbnail_url] = uploadImages(req.files['images']);
+    if (error) {
+        return res.status(500).send(error);
     }
 
     // Save the new room to the database
@@ -110,4 +123,11 @@ router.post('/', verifyJWT, upload.fields([{ name: 'thumbnail', maxCount: 1 }, {
     res.status(201).send(newRoom);
 });
 
-module.exports = router;
+//module.exports = router;
+
+module.exports = {
+    router,
+    uploadThumbnail,
+    uploadImages,
+    validateOwnerID
+};

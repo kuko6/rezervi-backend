@@ -108,4 +108,10 @@ router.post('/', verifyJWT, async (req, res) => {
     res.status(201).send(newReservation);
 });
 
-module.exports = router;
+// module.exports = router;
+
+module.exports = {
+    router,
+    roomIDValidation,
+    userIDValidation
+};
